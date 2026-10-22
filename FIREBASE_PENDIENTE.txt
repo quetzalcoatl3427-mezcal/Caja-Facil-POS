@@ -1,0 +1,23 @@
+SIGUIENTE FASE OBLIGATORIA: FIREBASE Y CUENTAS SEGURAS
+
+No pegues aquí contraseñas ni claves privadas.
+
+Arquitectura requerida para la versión multi-dispositivo:
+1. Firebase Authentication para el inicio de sesión.
+2. Cloud Firestore para catálogo, inventario, usuarios y ventas.
+3. Reglas Firestore: usuario autenticado; cada negocio separado por businessId;
+   solo el propietario autorizado puede asignar roles y desactivar empleados.
+4. Creación inicial del propietario mediante un proceso controlado, no registro público.
+5. Empleados no pueden escribir su propio rol ni cambiarse a propietario.
+6. Ventas offline guardadas en cola y sincronizadas al recuperar conexión, con IDs
+   únicos para evitar duplicarlas.
+7. Registro de auditoría para cambios de precio, stock, cuentas y ventas.
+
+Regla esencial:
+- La app no debe decidir por sí sola quién es propietario.
+- Nunca confíes en un rol guardado solo en localStorage.
+- Las reglas de Firestore deben validar los permisos del lado del servidor.
+- Las credenciales de administrador de Firebase no deben incluirse en la APK.
+
+Esta guía no significa que Firebase ya esté integrado. La versión actual sigue siendo
+un prototipo local hasta implementar y probar esta fase.

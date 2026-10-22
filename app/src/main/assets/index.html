@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<style>
+:root{--bg:#f3f5f9;--ink:#1f2937;--green:#087f5b;--line:#dce3eb}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px system-ui,Arial;color:var(--ink)}
+header{background:#064e3b;color:white;padding:18px 16px}header h1{margin:0;font-size:23px}header p{margin:5px 0 0;color:#d1fae5}
+nav{display:flex;gap:6px;padding:10px;background:white;position:sticky;top:0;z-index:2;overflow:auto}
+button{border:0;border-radius:10px;padding:11px 13px;background:var(--green);color:white;font-weight:700;font-size:14px}
+nav button{background:#e6f4ef;color:#065f46;white-space:nowrap}.wrap{padding:12px;max-width:800px;margin:auto}.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+h2{margin:0 0 12px;font-size:19px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+input,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;margin:4px 0 10px;font:inherit}
+.product{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:white}.product img{width:100%;height:120px;object-fit:cover;background:#e5e7eb}.product .info{padding:9px}.muted{color:#64748b;font-size:12px}.price{font-weight:800;color:#047857;font-size:18px}.row{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:8px 0}.small{padding:7px 10px;font-size:12px}.danger{background:#b91c1c}.secondary{background:#334155}.total{font-size:25px;font-weight:900}.hidden{display:none}.ticket{white-space:pre-wrap;background:#f8fafc;padding:12px;border-radius:10px}
+</style></head><body>
+<header><h1>🧾 Caja Fácil POS</h1><p>Catálogo visual · ventas · inventario</p></header>
+<nav><button onclick="show('sale')">🛒 Vender</button><button onclick="show('products')">📦 Productos</button><button onclick="show('history')">📊 Ventas y corte</button></nav>
+<div class="wrap">
+<section id="sale">
+<div class="panel"><h2>Catálogo</h2><input id="search" placeholder="Buscar producto..." oninput="renderProducts()"><div id="catalog" class="grid"></div></div>
+<div class="panel"><h2>Carrito</h2><div id="cart"></div><div class="row"><span>Total</span><span id="total" class="total">$0.00</span></div><label>Pago recibido en efectivo</label><input id="paid" type="number" min="0" step=".01" placeholder="0.00"><div class="row"><span>Cambio</span><b id="change">$0.00</b></div><button style="width:100%" onclick="checkout()">Cobrar y crear ticket</button><div id="lastTicket" class="hidden"><h3>Ticket listo</h3><div id="ticketText" class="ticket"></div><button onclick="shareTicket()">Compartir ticket</button></div></div>
+</section>
+<section id="products" class="hidden"><div class="panel"><h2>Agregar producto</h2><label>Nombre</label><input id="pname" placeholder="Ej. Café 250 g"><div class="grid"><div><label>Precio de venta ($)</label><input id="pprice" type="number" min="0" step=".01" placeholder="25.00"></div><div><label>Existencias</label><input id="pstock" type="number" min="0" step="1" placeholder="10"></div></div><label>Foto del producto</label><input id="pimage" type="file" accept="image/*"><button onclick="addProduct()">Guardar producto</button></div><div class="panel"><h2>Inventario actual</h2><div id="inventory"></div></div></section>
+<section id="history" class="hidden"><div class="panel"><h2>Ventas registradas</h2><div id="sales"></div><hr><div class="row"><b>Total vendido</b><b id="dayTotal">$0.00</b></div><p class="muted">Corte simple de ventas registradas en este dispositivo.</p><button class="secondary" onclick="exportData()">Exportar respaldo JSON</button><input id="importFile" type="file" accept=".json,application/json"><button class="secondary" onclick="importData()">Importar respaldo</button></div></section>
+<p class="muted">Prototipo inicial: los datos se guardan en este dispositivo. La sincronización entre cajas y usuarios requiere configurar un backend seguro.</p>
+</div>
+<script>
+const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(Number(n)||0);
+let products=JSON.parse(localStorage.getItem('cf_products')||'[]');
+let sales=JSON.parse(localStorage.getItem('cf_sales')||'[]');
+let cart={};
+function persist(){localStorage.setItem('cf_products',JSON.stringify(products));localStorage.setItem('cf_sales',JSON.stringify(sales));renderProducts();renderInventory();renderCart();renderSales()}
+function show(id){['sale','products','history'].forEach(x=>document.getElementById(x).classList.toggle('hidden',x!==id));}
+function renderProducts(){let q=(document.getElementById('search')?.value||'').toLowerCase();let list=products.filter(p=>p.name.toLowerCase().includes(q));document.getElementById('catalog').innerHTML=list.map(p=>`<div class="product"><img src="${p.image||''}" alt=""><div class="info"><b>${esc(p.name)}</b><div class="price">${money(p.price)}</div><div class="muted">Existencias: ${p.stock}</div><button class="small" onclick="addCart('${p.id}')">Agregar</button></div></div>`).join('')||'<p class="muted">Todavía no hay productos. Ve a Productos para crear el catálogo.</p>'}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function addProduct(){let name=document.getElementById('pname').value.trim(),price=Number(document.getElementById('pprice').value),stock=Math.max(0,parseInt(document.getElementById('pstock').value||'0'));let file=document.getElementById('pimage').files[0];if(!name||price<0||!Number.isFinite(price)){alert('Escribe nombre y precio válido.');return}
+const save=image=>{products.push({id:Date.now().toString()+Math.random().toString(16).slice(2),name,price,stock,image});document.getElementById('pname').value='';document.getElementById('pprice').value='';document.getElementById('pstock').value='';document.getElementById('pimage').value='';persist();alert('Producto guardado en este dispositivo.')}
+if(file){if(file.size>900000){alert('Elige una foto de menos de 900 KB para evitar llenar el almacenamiento.');return}let r=new FileReader();r.onload=()=>save(r.result);r.readAsDataURL(file)}else save('')}
+function addCart(id){let p=products.find(x=>x.id===id);if(!p)return;if((cart[id]||0)>=p.stock){alert('No hay más existencias registradas.');return}cart[id]=(cart[id]||0)+1;renderCart()}
+function renderCart(){let rows=Object.entries(cart).filter(([id,n])=>n>0).map(([id,n])=>{let p=products.find(x=>x.id===id);return p?`<div class="row"><span>${esc(p.name)} × ${n}<br><span class="muted">${money(p.price)} c/u</span></span><b>${money(p.price*n)}</b><button class="small danger" onclick="removeCart('${id}')">−</button></div>`:''}).join('');document.getElementById('cart').innerHTML=rows||'<p class="muted">Agrega productos del catálogo.</p>';let t=cartTotal();document.getElementById('total').textContent=money(t);document.getElementById('change').textContent=money(Math.max(0,Number(document.getElementById('paid').value||0)-t))}
+function cartTotal(){return Object.entries(cart).reduce((s,[id,n])=>s+(products.find(p=>p.id===id)?.price||0)*n,0)}
+function removeCart(id){cart[id]=(cart[id]||0)-1;if(cart[id]<=0)delete cart[id];renderCart()}
+document.getElementById('paid').addEventListener('input',renderCart);
+function checkout(){let entries=Object.entries(cart).filter(([id,n])=>n>0),total=cartTotal(),paid=Number(document.getElementById('paid').value||0);if(!entries.length){alert('El carrito está vacío.');return}if(paid<total){alert('El pago recibido no cubre el total.');return}for(let [id,n] of entries){let p=products.find(x=>x.id===id);if(!p||p.stock<n){alert('Existencias insuficientes para '+(p?.name||'un producto'));return}}
+let items=entries.map(([id,n])=>{let p=products.find(x=>x.id===id);p.stock-=n;return {name:p.name,price:p.price,qty:n}});let sale={id:'CF-'+Date.now().toString().slice(-8),date:new Date().toLocaleString('es-MX'),items,total,paid,change:paid-total};sales.unshift(sale);cart={};document.getElementById('paid').value='';persist();let text=makeTicket(sale);document.getElementById('ticketText').textContent=text;document.getElementById('lastTicket').classList.remove('hidden');}
+function makeTicket(s){return `CAJA FÁCIL POS\\nTicket: ${s.id}\\nFecha: ${s.date}\\n--------------------\\n`+s.items.map(i=>`${i.name} x${i.qty}  ${money(i.price*i.qty)}`).join('\\n')+`\\n--------------------\\nTOTAL: ${money(s.total)}\\nPago: ${money(s.paid)}\\nCambio: ${money(s.change)}\\nGracias por su compra.`}
+function shareTicket(){let t=document.getElementById('ticketText').textContent; if(navigator.share){navigator.share({title:'Ticket de compra',text:t}).catch(()=>{})}else location.href='https://wa.me/?text='+encodeURIComponent(t)}
+function renderInventory(){document.getElementById('inventory').innerHTML=products.map(p=>`<div class="row"><span>${esc(p.name)}<br><span class="muted">${p.stock} en existencia</span></span><b>${money(p.price)}</b><button class="small danger" onclick="deleteProduct('${p.id}')">Eliminar</button></div>`).join('')||'<p class="muted">Sin productos.</p>'}
+function deleteProduct(id){if(confirm('¿Eliminar este producto?')){products=products.filter(p=>p.id!==id);delete cart[id];persist()}}
+function renderSales(){document.getElementById('sales').innerHTML=sales.map(s=>`<div class="row"><span><b>${s.id}</b><br><span class="muted">${s.date} · ${s.items.length} líneas</span></span><b>${money(s.total)}</b><button class="small" onclick="alert(${JSON.stringify(makeTicket(s)).replace(/</g,'\\u003c')})">Ticket</button></div>`).join('')||'<p class="muted">Aún no hay ventas.</p>';document.getElementById('dayTotal').textContent=money(sales.reduce((a,s)=>a+s.total,0))}
+function exportData(){let blob=new Blob([JSON.stringify({products,sales},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='caja-facil-respaldo.json';a.click();URL.revokeObjectURL(a.href)}
+function importData(){let f=document.getElementById('importFile').files[0];if(!f){alert('Selecciona un archivo de respaldo.');return}let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);if(!Array.isArray(d.products)||!Array.isArray(d.sales))throw Error();products=d.products;sales=d.sales;persist();alert('Respaldo importado.')}catch(e){alert('Archivo de respaldo no válido.')}};r.readAsText(f)}
+persist();
+</script></body></html>
