@@ -1,12 +1,24 @@
-plugins { id 'com.android.application' }
+
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'
+}
+
 android {
     namespace 'com.cajafacil.pos'
     compileSdk 35
+
     defaultConfig {
         applicationId 'com.cajafacil.pos'
         minSdk 23
         targetSdk 35
-        versionCode 1
-        versionName '0.1.0'
+        versionCode 2
+        versionName '0.2.0'
     }
+}
+
+dependencies {
+    implementation platform('com.google.firebase:firebase-bom:34.4.0')
+    implementation 'com.google.firebase:firebase-firestore'
+    implementation 'com.google.firebase:firebase-auth'
 }
