@@ -26,6 +26,8 @@ jobs:
 
       - name: Preparar Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 
 
       - name: Aceptar licencias Android
         run: sdkmanager --licenses
