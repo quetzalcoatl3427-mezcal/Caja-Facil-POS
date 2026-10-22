@@ -14,8 +14,26 @@ input,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;
 
 <header><h1>🧾 El Quinto Sol</h1><p>Ventas · inventario sincronizado · control de mermas</p></header>
 
-<nav><button onclick="show('sale')">🛒 Vender</button><button onclick="show('products')">📦 Productos</button><button onclick="show('history')">📊 Ventas y corte</button></nav>
+<section id="loginPanel" class="panel" style="max-width:520px;margin:16px auto">
+  <h2>🔐 Iniciar sesión</h2>
+  <p class="muted">Acceso para el propietario y empleados autorizados.</p>
+  <label>Correo electrónico</label>
+  <input id="loginEmail" type="email" autocomplete="username" placeholder="Tu correo">
+  <label>Contraseña</label>
+  <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Tu contraseña">
+  <button style="width:100%" onclick="loginFirebase()">Entrar</button>
+  <p id="loginMessage" class="muted"></p>
+</section>
+
+<div id="appContent" class="hidden">
+<nav>
+  <button onclick="show('sale')">🛒 Vender</button>
+  <button onclick="show('products')">📦 Productos</button>
+  <button onclick="show('history')">📊 Ventas y corte</button>
+  <button onclick="logoutFirebase()">🔒 Salir</button>
+</nav>
 <div class="wrap">
+
 <section id="sale">
 <div class="panel"><h2>Catálogo</h2><input id="search" placeholder="Buscar producto..." oninput="renderProducts()"><div id="catalog" class="grid"></div></div>
 <div class="panel"><h2>Carrito</h2><div id="cart"></div><div class="row"><span>Total</span><span id="total" class="total">$0.00</span></div><label>Pago recibido en efectivo</label><input id="paid" type="number" min="0" step=".01" placeholder="0.00"><div class="row"><span>Cambio</span><b id="change">$0.00</b></div><button style="width:100%" onclick="checkout()">Cobrar y crear ticket</button><div id="lastTicket" class="hidden"><h3>Ticket listo</h3><div id="ticketText" class="ticket"></div><button onclick="shareTicket()">Compartir ticket</button></div></div>
@@ -23,6 +41,7 @@ input,select{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;
 <section id="products" class="hidden"><div class="panel"><h2>Agregar producto</h2><label>Nombre</label><input id="pname" placeholder="Ej. Café 250 g"><div class="grid"><div><label>Precio de venta ($)</label><input id="pprice" type="number" min="0" step=".01" placeholder="25.00"></div><div><label>Existencias</label><input id="pstock" type="number" min="0" step="1" placeholder="10"></div></div><label>Foto del producto</label><input id="pimage" type="file" accept="image/*"><button onclick="addProduct()">Guardar producto</button></div><div class="panel"><h2>Inventario actual</h2><div id="inventory"></div></div></section>
 <section id="history" class="hidden"><div class="panel"><h2>Ventas registradas</h2><div id="sales"></div><hr><div class="row"><b>Total vendido</b><b id="dayTotal">$0.00</b></div><p class="muted">Corte simple de ventas registradas en este dispositivo.</p><button class="secondary" onclick="exportData()">Exportar respaldo JSON</button><input id="importFile" type="file" accept=".json,application/json"><button class="secondary" onclick="importData()">Importar respaldo</button></div></section>
 <p class="muted">Prototipo inicial: los datos se guardan en este dispositivo. La sincronización entre cajas y usuarios requiere configurar un backend seguro.</p>
+</div>
 </div>
 <script>
 const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(Number(n)||0);
@@ -50,5 +69,46 @@ function deleteProduct(id){if(confirm('¿Eliminar este producto?')){products=pro
 function renderSales(){document.getElementById('sales').innerHTML=sales.map(s=>`<div class="row"><span><b>${s.id}</b><br><span class="muted">${s.date} · ${s.items.length} líneas</span></span><b>${money(s.total)}</b><button class="small" onclick="alert(${JSON.stringify(makeTicket(s)).replace(/</g,'\\u003c')})">Ticket</button></div>`).join('')||'<p class="muted">Aún no hay ventas.</p>';document.getElementById('dayTotal').textContent=money(sales.reduce((a,s)=>a+s.total,0))}
 function exportData(){let blob=new Blob([JSON.stringify({products,sales},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='caja-facil-respaldo.json';a.click();URL.revokeObjectURL(a.href)}
 function importData(){let f=document.getElementById('importFile').files[0];if(!f){alert('Selecciona un archivo de respaldo.');return}let r=new FileReader();r.onload=()=>{try{let d=JSON.parse(r.result);if(!Array.isArray(d.products)||!Array.isArray(d.sales))throw Error();products=d.products;sales=d.sales;persist();alert('Respaldo importado.')}catch(e){alert('Archivo de respaldo no válido.')}};r.readAsText(f)}
+function loginFirebase() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const message = document.getElementById('loginMessage');
+
+  if (!email || !password) {
+    message.textContent = 'Escribe tu correo y contraseña.';
+    return;
+  }
+
+  if (!window.AndroidFirebase) {
+    message.textContent = 'El inicio de sesión requiere la APK Android.';
+    return;
+  }
+
+  message.textContent = 'Verificando acceso...';
+  window.AndroidFirebase.login(email, password);
+}
+
+function logoutFirebase() {
+  if (window.AndroidFirebase) {
+    window.AndroidFirebase.logout();
+  }
+}
+
+window.onFirebaseLoginResult = function(result) {
+  const loginPanel = document.getElementById('loginPanel');
+  const appContent = document.getElementById('appContent');
+  const message = document.getElementById('loginMessage');
+
+  if (result && result.ok) {
+    loginPanel.classList.add('hidden');
+    appContent.classList.remove('hidden');
+    message.textContent = '';
+  } else {
+    appContent.classList.add('hidden');
+    loginPanel.classList.remove('hidden');
+    message.textContent =
+      (result && result.message) || 'No se pudo iniciar sesión.';
+  }
+};
 persist();
 </script></body></html>
