@@ -24,12 +24,7 @@ jobs:
           java-version: '17'
 
       - name: Preparar Android SDK
-        run: |
-          echo "ANDROID_HOME=${ANDROID_HOME:-/usr/local/lib/android/sdk}" >> "$GITHUB_ENV"
-          echo "/usr/local/lib/android/sdk/cmdline-tools/16.0/bin" >> "$GITHUB_PATH"
-          echo "/usr/local/lib/android/sdk/platform-tools" >> "$GITHUB_PATH"
-          export PATH="/usr/local/lib/android/sdk/cmdline-tools/16.0/bin:$PATH"
-          ls -la /usr/local/lib/android/sdk/cmdline-tools/16.0/bin/
+        uses: android-actions/setup-android@v3
 
       - name: Aceptar licencias Android
         run: yes | sdkmanager --licenses
