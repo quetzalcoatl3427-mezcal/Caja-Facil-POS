@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "517778464514",
+    "project_id": "el-quinto-sol",
+    "storage_bucket": "el-quinto-sol.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:517778464514:android:eaf0a400c3f7fb635fac1b",
+        "android_client_info": {
+          "package_name": "com.cajafacil.pos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1Cmt6wajEBpgRotdBpPYkxil5tylIscw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
